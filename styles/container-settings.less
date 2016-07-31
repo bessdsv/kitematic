@@ -104,7 +104,7 @@
         padding-left: 10px;
       }
     }
-    .env-vars-labels {
+    .env-vars-labels, .links-vars-labels {
       width: 100%;
       font-size: 14px;
       color: @gray-lighter;
@@ -122,7 +122,7 @@
         width: 50%;
       }
     }
-    .env-vars {
+    .env-vars, .links-vars {
       margin-bottom: 20px;
       .keyval-row {
         margin-bottom: 5px;
@@ -135,6 +135,14 @@
         &.val {
           width: 50%;
         }
+      }
+      p {
+        margin-top: 5px;
+        margin-left: 5px;
+        flex: 1 auto;
+        display: flex;
+        font-size: 12px;
+        color: @gray-lighter;
       }
     }
     .table {
