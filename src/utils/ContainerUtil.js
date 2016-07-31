@@ -8,8 +8,7 @@ var ContainerUtil = {
     }
     return _.map(container.Config.Env, env => {
       var i = env.indexOf('=');
-      var splits = [env.slice(0, i), env.slice(i + 1)];
-      return splits;
+      return [env.slice(0, i), env.slice(i + 1)];
     });
   },
 
@@ -22,7 +21,30 @@ var ContainerUtil = {
     ];
   },
 
-  // TODO: inject host here instead of requiring Docker
+  links: function (container) {
+    if (!container || !container.HostConfig || !container.HostConfig.Links) {
+      return [];
+    }
+    return _.map(container.HostConfig.Links, link => {
+      var i = link.indexOf(':');
+      // Account for the slashes
+      var keyStart, valStart;
+      if (link.indexOf('/') != -1 && link.indexOf('/') < i) {
+        keyStart = link.indexOf('/') + 1;
+      } else {
+        keyStart = 0;
+      }
+      if (link.lastIndexOf('/') != -1 && link.lastIndexOf('/') > i) {
+        valStart = link.lastIndexOf('/') + 1;
+      } else {
+        valStart = i + 1;
+      }
+      return [link.slice(keyStart, i), link.slice(valStart)];
+    });
+  },
+
+
+// TODO: inject host here instead of requiring Docker
   ports: function (container) {
     if (!container || !container.NetworkSettings) {
       return {};
