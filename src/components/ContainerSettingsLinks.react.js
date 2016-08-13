@@ -8,7 +8,7 @@ import ContainerUtil from '../utils/ContainerUtil';
 import containerActions from '../actions/ContainerActions';
 import util from '../utils/Util';
 import containerStore from '../stores/ContainerStore';
-
+import Typeahead from './Typeahead.react';
 
 var ContainerSettingsLinks = React.createClass({
     mixins: [React.addons.LinkedStateMixin],
@@ -21,10 +21,15 @@ var ContainerSettingsLinks = React.createClass({
         let links = ContainerUtil.links(this.props.container) || [];
         links.push(['', '']);
         links = _.map(links, l => {
-            return [util.randomId(), l[0], l[1], true];
+            return [util.randomId(), l[0], l[1]];
         });
         let containers = containerStore.getState().containers;
-        let sorted = _.pluck(containers, 'Name');
+        let sorted = [];
+        for(var prop in containers){
+            if (containers.hasOwnProperty(prop) && containers[prop].Id != this.props.container.Id){
+                sorted.push(containers[prop]);
+            }
+        }
 
         return {
             links: links,
@@ -36,9 +41,11 @@ var ContainerSettingsLinks = React.createClass({
         metrics.track('Saved Linked Containers');
         let list = [];
         let keys = [];
+        let newLinks = [];
         _.each(this.state.links, kvp => {
             let [, key, value] = kvp;
-            if ((key && key.length) || (value && value.length)) {
+            if ((key && key.length) && (value && value.length)) {
+                newLinks.push(kvp);
                 let link = key + ':' + value;
                 // Check if Container was previously added
                 let currentKey = keys.indexOf(key);
@@ -52,33 +59,20 @@ var ContainerSettingsLinks = React.createClass({
         });
         let runtimeConfig = _.extend(this.props.container.HostConfig, {Links: list.length ? list : null });
         containerActions.update(this.props.container.Name, {HostConfig: runtimeConfig});
+        newLinks.push([util.randomId(), '', '']);
+        this.setState({links : newLinks});
     },
 
     handleChangeLinksKey: function (index, event) {
         let links = _.map(this.state.links, _.clone);
-        let selected = false;
-        let value;
-        // Check if Typeahead or simple input
-        if (typeof event === "string") {
-            selected = true;
-            value = event;
+        if (event && event[0]){
+            links[index][1] = event[0]['Name'];
+            links[index][2] = links[index][2] || event[0]['Name'] || "";
         } else {
-            value = event.target.value;
+            links[index][1] = "";
         }
-        links[index][1] = value;
-        /*if (links[index][2] == "") {
-            links[index][2] = value;
-            this.refs["link-val"].getDOMNode().value = value;
-        }*/
-        links[index][3] =  selected;
         this.setState({
             links: links
-        }, () => {
-            /*if (!selected) {
-                // Focus on input after re-render
-                this.refs.keyTypeahead.refs.entry.getDOMNode().focus();
-                this.refs.keyTypeahead.refs.entry.getDOMNode().value = value;
-            }*/
         });
     },
 
@@ -121,8 +115,8 @@ var ContainerSettingsLinks = React.createClass({
 
         let _state = this.state;
 
-        let vars = _.map(this.state.links, (kvps, index) => {
-            let [id, key, val, selected] = kvps;
+        let links = _.map(this.state.links, (kvps, index) => {
+            let [id, key, val] = kvps;
             let icon;
             if (index === _state.links.length - 1) {
                 icon = <a onClick={this.handleAddLinksVar} className="only-icon btn btn-positive small"><span className="icon icon-add"></span></a>;
@@ -131,31 +125,44 @@ var ContainerSettingsLinks = React.createClass({
             }
 
             let inputDockerContainer = (
-                    <input type="text" ref="link-key"  className="key line" defaultValue={key} onChange={this.handleChangeLinksKey.bind(this, index)} />
-                );
-
+                <Typeahead
+                    onChange={this.handleChangeLinksKey.bind(this, index)}
+                    //refs="typeahead"
+                    className="key line"
+                    labelKey="Name"
+                    options={_state.sorted}
+                    selected={ key != "" ? _.where(_state.sorted, {Name: key}) : []}
+                    />
+            );
             return (
-                <div key={id} className="keyval-row">
-                    {inputDockerContainer}
-                    <input type="text" ref="link-val" className="val line" defaultValue={val} onChange={this.handleChangeLinksVal.bind(this, index)} />
-                    {icon}
-                </div>
+                <tr>
+                    <td>{inputDockerContainer}</td>
+                    <td><input type="text" ref="link-val" className="val line" oldValue={val} value={val} defaultValue={val} onChange={this.handleChangeLinksVal.bind(this, index)} /></td>
+                    <td>
+                        {icon}
+                    </td>
+                </tr>
             );
         });
 
         return (
             <div className="settings-panel">
-                <div className="settings-section">
-                    <h3>Configure Linked Containers</h3>
-                    <div className="links-vars-labels">
-                        <div className="label-key">DOCKER CONTAINER</div>
-                        <div className="label-val">DOCKER ALIAS</div>
-                    </div>
-                    <div className="links-vars">
-                        {vars}
-                    </div>
-                    <a className="btn btn-action" disabled={this.props.container.State.Updating} onClick={this.handleSaveLinksVars}>Save</a>
-                </div>
+            <div className="settings-section">
+                <h3>Configure Linked Containers</h3>
+                <table className="table links">
+                    <thead>
+                    <tr>
+                        <th>DOCKER CONTAINER</th>
+                        <th>DOCKER ALIAS</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {links}
+                    </tbody>
+                </table>
+                <a className="btn btn-action" disabled={this.props.container.State.Updating} onClick={this.handleSaveLinksVars}>Save</a>
+            </div>
             </div>
         );
     }

@@ -172,6 +172,14 @@
       &.volumes {
         max-width: 100%;
       }
+      &.links {
+        max-width: 100%;
+        tr{
+          td {
+            border: none;
+          }
+        }
+      }
       color: @gray-normal;
       tr {
         &:first-child {
@@ -204,3 +212,21 @@
     }
   }
 }
+
+.bootstrap-typeahead .dropdown-menu {
+  overflow: auto;
+  li {
+    a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      &.focus {
+        outline: none;
+      }
+    }
+  }
+}
+
+.bootstrap-typeahead-input-hint {
+  color: #aaa;
+}
+
